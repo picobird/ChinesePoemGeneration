@@ -9,6 +9,9 @@ import tqdm
 import numpy as np
 import argparse
 import sys
+if not sys.warnoptions:
+    import warnings
+    warnings.simplefilter("ignore")
 import os
 from preprocess import pos2PE
 from main import infer
@@ -70,16 +73,20 @@ if __name__ == "__main__":
     checkpoint = torch.load(os.path.join(args.dir, args.name))
     model, final, words, word2int, emb = checkpoint['model'], checkpoint['final'], checkpoint['words'], checkpoint['word2int'], checkpoint['emb']
     print('Finish Loading')
+    print('Please input start word(s)')
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
     final.to(device)
     start_words, start_freq = calc_word_freq('./data/poems.txt')
     while True:
-        start = input()
         try:
+            start = input()
             if len(start) == 0:
                 start = start_words[prob_sample(start_freq)]
             poems = infer(model, final, words, word2int, emb, hidden_size = model.hidden_size, start=start, n = 20, num = 5 if random.random() < 0.5 else 7)
             print(evaluate(poems))
+        except (KeyboardInterrupt, SystemExit):
+            print('Bye')
+            sys.exit()
         except KeyError:
             print(u'此字在语料库中未出现过，请更换首字')
